@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -9,9 +11,9 @@ using Microsoft.Extensions.Logging;
 
 namespace AzureDurableFunctionsMessenger
 {
-    public static class Function1
+    public static class AzureStorageNotifierFunctions
     {
-        [FunctionName("Function1")]
+        [FunctionName("AzureStorageNotifier_Orchestrator")]
         public static async Task<List<string>> RunOrchestrator(
             [OrchestrationTrigger] IDurableOrchestrationContext context)
         {
@@ -33,18 +35,24 @@ namespace AzureDurableFunctionsMessenger
             return $"Hello {name}!";
         }
 
-        [FunctionName("Function1_HttpStart")]
-        public static async Task<HttpResponseMessage> HttpStart(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestMessage req,
-            [DurableClient] IDurableOrchestrationClient starter,
-            ILogger log)
+        [FunctionName("AzureStorageNotifier_Start")]
+        public static async Task HttpBlobStart(
+         [BlobTrigger("samples-workitems/{name}", Connection = "StorageConnectionString")] CloudBlockBlob myCloudBlob, string name, ILogger log,
+         [DurableClient] IDurableOrchestrationClient starter)
         {
+            log.LogInformation($"Started orchestration trigged by BLOB trigger. A blob item with name = '{name}'");
+            log.LogInformation($"BLOB Name {myCloudBlob.Name}");
+            var blob = myCloudBlob;
+            var BlobMetaData = myCloudBlob.Metadata;
+
             // Function input comes from the request content.
-            string instanceId = await starter.StartNewAsync("Function1", null);
+            if (BlobMetaData != null)
+            {
+                string instanceId = await starter.StartNewAsync("AzureStorageNotifier_Orchestrator", null);
 
-            log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
+                log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
+            }
 
-            return starter.CreateCheckStatusResponse(req, instanceId);
         }
     }
 }
