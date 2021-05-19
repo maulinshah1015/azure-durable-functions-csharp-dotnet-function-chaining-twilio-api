@@ -18,7 +18,7 @@ namespace DurableAzureStorageFunctions
         {
             var outputs = new List<string>();
 
-            var eventData = context.GetInput<CloudBlobItem>();
+            var uploadedCloudBlob = context.GetInput<CloudBlobItem>();
 
 
             outputs.Add(await context.CallActivityAsync<string>("Function1_Hello", "Tokyo"));
@@ -29,25 +29,40 @@ namespace DurableAzureStorageFunctions
             return outputs;
         }
 
-        [FunctionName("Function1_Hello")]
-        public static string SayHello([ActivityTrigger] string name, ILogger log)
+        [FunctionName("AzureStorageNotifier_SendMessageToAzureServiceBusQueue")]
+        public static string SendMessageToAzureServiceBusQueue([ActivityTrigger] CloudBlobItem uploadedcloudBlob, ILogger log)
         {
-            log.LogInformation($"Saying hello to {name}.");
-            return $"Hello {name}!";
+            log.LogInformation($"Received event data with an uploaded cloud blob {uploadedcloudBlob.Name} with format {uploadedcloudBlob.FileType}.");
+
+            //TODO
+            return $"Composed Message for uploaded cloud blob {uploadedcloudBlob.Name}!";
         }
 
-        //[FunctionName("Function1_HttpStart")]
-        //public static async Task<HttpResponseMessage> HttpStart(
-        //    [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestMessage req,
-        //    [DurableClient] IDurableOrchestrationClient starter,
-        //    ILogger log)
+
+        [FunctionName("AzureStorageNotifier_SendMessageToUserViaTwilioAPI")]
+        public static string Se([ActivityTrigger] CloudBlobItem uploadedcloudBlob, ILogger log)
+        {
+            log.LogInformation($"Received event data with an uploaded cloud blob {uploadedcloudBlob.Name} with format {uploadedcloudBlob.FileType}.");
+
+            //TODO
+            return $"Composed Message for uploaded cloud blob {uploadedcloudBlob.Name}!";
+        }
+
+
+        //[FunctionName("QueueTwilio")]
+        //[return: TwilioSms(AccountSidSetting = "TwilioAccountSid", AuthTokenSetting = "TwilioAuthToken", From = "+1425XXXXXXX")]
+        //public static CreateMessageOptions Run(
+        //[QueueTrigger("myqueue-items", Connection = "AzureWebJobsStorage")] JObject order,
+        //ILogger log)
         //{
-        //    // Function input comes from the request content.
-        //    string instanceId = await starter.StartNewAsync("Function1", null);
+        //    log.LogInformation($"C# Queue trigger function processed: {order}");
 
-        //    log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
+        //    var message = new CreateMessageOptions(new PhoneNumber(order["mobileNumber"].ToString()))
+        //    {
+        //        Body = $"Hello {order["name"]}, thanks for your order!"
+        //    };
 
-        //    return starter.CreateCheckStatusResponse(req, instanceId);
+        //    return message;
         //}
 
         [FunctionName("AzureStorageNotifier_Start")]

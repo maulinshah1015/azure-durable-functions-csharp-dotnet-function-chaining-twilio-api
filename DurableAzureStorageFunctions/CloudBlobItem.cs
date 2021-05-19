@@ -6,11 +6,6 @@ namespace DurableAzureStorageFunctions
 {
     public class CloudBlobItem
     {
-        public CloudBlobItem()
-        {
-
-        }
-       
         public string Name { get; set; }
         public string Size { get; set; }
 
@@ -23,6 +18,13 @@ namespace DurableAzureStorageFunctions
         public string ETag { get; set; }
 
         public Dictionary<string, string> Metadata { get; set; }
+
+
+        public CloudBlobItem()
+        {
+
+        }
+
 
     }
 }
