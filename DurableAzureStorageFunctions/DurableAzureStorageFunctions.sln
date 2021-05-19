@@ -5,6 +5,10 @@ VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableAzureStorageFunctions", "DurableAzureStorageFunctions.csproj", "{1E80428F-144D-4FE9-93B6-463A1F398F71}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorageWatcher.BlazorApp", "..\CloudStorageWatcher.BlazorApp\CloudStorageWatcher.BlazorApp.csproj", "{7FDF6D90-9A28-4A65-BEFF-FAF7F7CDEAE0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DurableAzureStorageFunctions.Tests", "..\DurableAzureStorageFunctions.Tests\DurableAzureStorageFunctions.Tests.csproj", "{ACAE835D-34D4-44A4-B291-9C0A052F7D7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{1E80428F-144D-4FE9-93B6-463A1F398F71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E80428F-144D-4FE9-93B6-463A1F398F71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E80428F-144D-4FE9-93B6-463A1F398F71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FDF6D90-9A28-4A65-BEFF-FAF7F7CDEAE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FDF6D90-9A28-4A65-BEFF-FAF7F7CDEAE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FDF6D90-9A28-4A65-BEFF-FAF7F7CDEAE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FDF6D90-9A28-4A65-BEFF-FAF7F7CDEAE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACAE835D-34D4-44A4-B291-9C0A052F7D7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACAE835D-34D4-44A4-B291-9C0A052F7D7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACAE835D-34D4-44A4-B291-9C0A052F7D7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACAE835D-34D4-44A4-B291-9C0A052F7D7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

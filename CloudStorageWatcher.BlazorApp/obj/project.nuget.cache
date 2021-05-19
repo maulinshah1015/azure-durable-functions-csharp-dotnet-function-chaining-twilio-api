@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "MfSGSULjMpQmcSnklYTIjyvItt8jpshkKWd3J7XO2Vrb/F0UM8NQY3PfXGprf4tE3Xfkbjc/gUtHhCj/nr+NuQ==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\jonah.andersson\\Google Drive\\Jonah-DevProjects\\azure-durable-functions-csharp-dotnet-function-chaining-twilio-api\\CloudStorageWatcher.BlazorApp\\CloudStorageWatcher.BlazorApp.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\jonah.andersson\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\3.1.12\\microsoft.netcore.app.host.win-x64.3.1.12.nupkg.sha512"
+  ],
+  "logs": []
+}
