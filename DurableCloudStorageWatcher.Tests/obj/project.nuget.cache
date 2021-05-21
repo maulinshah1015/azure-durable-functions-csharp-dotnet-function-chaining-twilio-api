@@ -1,8 +1,0 @@
-{
-  "version": 2,
-  "dgSpecHash": "JFM+Faf8nAsM3/zGMb5ExNdgfTbQfBA0keKRRPGPlhGq7/+svNaPykMZ1/BL7cRCU5ezuiI4z7bT/ptI6RjF3w==",
-  "success": true,
-  "projectFilePath": "C:\\Users\\jonah.andersson\\Google Drive\\Jonah-DevProjects\\azure-durable-functions-csharp-dotnet-function-chaining-twilio-api\\DurableCloudStorageWatcher.Tests\\DurableAzureStorageFunctions.Tests.csproj",
-  "expectedPackageFiles": [],
-  "logs": []
-}
