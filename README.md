@@ -18,13 +18,11 @@ Developing it freestyle as I dig deeper into Azure Durable Functions!
 
 ## Learn more about Azure Durable Functions 
 
-- **Microsoft Learn**
-https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-create-first-csharp?pivots=code-editor-vscode  
-
 - **Azure Durable Functions Documentation**
 https://docs.microsoft.com/en-us/azure/azure-functions/durable/
 
-
+- **Microsoft Learn**
+https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-create-first-csharp?pivots=code-editor-vscode  
 
 - **Azure Functions University on YouTube  by Marc Duiker and Gwyneth Peña-Siguenza**
   YouTube Channel: [Serverless on Azure](https://www.youtube.com/channel/UCmoWqg6T-c8zEGm4sZdnwbA)
