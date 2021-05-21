@@ -19,12 +19,5 @@ namespace DurableAzureStorageFunctions
 
         public Dictionary<string, string> Metadata { get; set; }
 
-
-        public CloudBlobItem()
-        {
-
-        }
-
-
     }
 }

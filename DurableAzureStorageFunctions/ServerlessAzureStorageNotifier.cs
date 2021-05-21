@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.ServiceBus;
@@ -18,7 +19,10 @@ using Twilio.Types;
 namespace DurableAzureStorageFunctions
 {
     /// <summary>
-    /// Azure Durable Functions FUNCTION CHAINING EXAMPLE trigged by BLOB Trigger
+    /// Azure Durable Functions FUNCTION CHAINING EXAMPLE trigged 
+    /// by Azure Functions BLOB Trigger and processed further with other
+    /// activity methods like sending SMS or Call to notify user 
+    /// about the Azure Service Bus Queue message update.
     /// </summary>
     public static class ServerlessAzureStorageNotifier
     {     
@@ -45,7 +49,6 @@ namespace DurableAzureStorageFunctions
                     $"SMS sent = {isSmsSentAndCalledUser} to assigned user." +
                     $" Access via BLOB URL: {uploadedCloudBlob.BlobUrl}" +
                     $"and process the queue messages" ;
-
             }
             catch (Exception)
             {
@@ -55,7 +58,6 @@ namespace DurableAzureStorageFunctions
         }
        
         [FunctionName("AzureStorageNotifier_SendMessageToServiceBusQueue")]
-        //[return: ServiceBus("azdurablefunctioncloudqueue", EntityType.Queue, Connection = "AzureServiceBusConnectionString")]
         public static async Task<bool> SendMessageToAzureServiceBusQueueAsync([ActivityTrigger] CloudBlobItem uploadedcloudBlob, ILogger log, ExecutionContext executionContext)
         {
             log.LogInformation($"Received event data with an uploaded cloud blob {uploadedcloudBlob.Name} with format {uploadedcloudBlob.FileType}.");         
@@ -158,8 +160,7 @@ namespace DurableAzureStorageFunctions
                                       $"Call Completed : {call.IsCompleted} \n ");            
 
                     return true;
-                }else
-                    return false;
+                }else return false;
 
             }
             catch (ApiException e)
@@ -170,8 +171,7 @@ namespace DurableAzureStorageFunctions
                 }
                 throw;              
             }
-        }
-    
+        }   
 
 
         [FunctionName("AzureStorageNotifier_ReceiveUploadedBlobFromServiceBusQueue")]
@@ -224,17 +224,14 @@ namespace DurableAzureStorageFunctions
                 {
                  
                     return false;
-                }
-                      
+                }                      
             }
             catch (Exception)
             {
-                //Error handling
+                //TODO Error handling
                
                 throw;
-            }
-
-             
+            }             
         }
 
 
@@ -268,11 +265,10 @@ namespace DurableAzureStorageFunctions
 
                     log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
                 }
-
             }
             catch (Exception)
             {
-
+                //Errorhandling 
                 throw;
             }
         }
@@ -284,11 +280,11 @@ namespace DurableAzureStorageFunctions
             if (String.IsNullOrEmpty(queueMessageBody))
             {               
                 Console.WriteLine($"Received Message Service Bus Queue: {queueMessageBody}");
-                SaveMessageToTextFile(queueMessageBody);
+                SaveMessageToTextFile(queueMessageBody); //TODO:
             }           
 
             //Complete message processing. Message deleted from queue
-            await args.CompleteMessageAsync(args.Message);           
+            await args.CompleteMessageAsync(args.Message);          
 
         }
 
@@ -296,25 +292,24 @@ namespace DurableAzureStorageFunctions
         {
             try
             {
-                // string pathToOutputFileFile = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Data\outputGreetings.txt");
-                string pathToOutputFileFile = @"C:\Users\jonah.andersson\Google Drive\Jonah-DevProjects\azure-durable-functions-csharp-dotnet-function-chaining-twilio-api\DurableAzureStorageFunctions\Data\outputdata.txt";
+                string pathToOutputFile = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Data\outputdata.txt");
+              
                 if (!String.IsNullOrEmpty(queueMessageBody))
                 {
                     // This text is added only once to the file.
-                    if (!File.Exists(pathToOutputFileFile))
+                    if (!File.Exists(pathToOutputFile))
                     {
                         // Create a file to write to.
-                        using (StreamWriter sw = File.CreateText(pathToOutputFileFile))
+                        using (StreamWriter sw = File.CreateText(pathToOutputFile))
                         {
                             sw.WriteLine(queueMessageBody);
                         }
                     }
                     else
                     {
-                        using (StreamWriter sw = File.CreateText(pathToOutputFileFile))
+                        using (StreamWriter sw = File.CreateText(pathToOutputFile))
                         {
                             sw.WriteLine(queueMessageBody);
-
                         }
                     }
                 }
