@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -11,6 +12,8 @@ using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 using Twilio;
 using Twilio.Exceptions;
 using Twilio.Rest.Api.V2010.Account;
@@ -41,14 +44,15 @@ namespace DurableAzureStorageFunctions
                 //Chain #2 Send SMS and call notification to set admin user that queue was updated with new blob
                 var isSmsSentAndCalledUser = await context.CallActivityAsync<bool>("AzureStorageNotifier_SendSMSAndCallToUserViaTwilioAPI", isMessageSentToServiceBusQueue);
 
-                //TODO Chain #3 Get messages from Queue after admin gets sms 
-                //var isMessageReceivedFromQueueAndForwarded = await context.CallActivityAsync<bool>("AzureStorageNotifier_ReceiveUploadedBlobFromServiceBusQueue", isSmsSent);
-                
+                //TODO Chain #3 Get messages from Azure Service Bus Queue after admin gets sms 
+                var isMessageReceivedFromQueueAndForwarded = await context.CallActivityAsync<bool>("AzureStorageNotifier_ReceiveUploadedBlobFromServiceBusQueue", isSmsSentAndCalledUser);
+
+            
                 return $"A new cloud blob named {uploadedCloudBlob.Name} was uploaded to Azure Storage " +
                     $"and added to service bus queue. " +
                     $"SMS sent = {isSmsSentAndCalledUser} to assigned user." +
                     $" Access via BLOB URL: {uploadedCloudBlob.BlobUrl}" +
-                    $"and process the queue messages" ;
+                    $"and processed queue messages was sent to receipients email = {isMessageReceivedFromQueueAndForwarded}" ;
             }
             catch (Exception)
             {
@@ -116,6 +120,7 @@ namespace DurableAzureStorageFunctions
         public static async Task<bool> SendSMSCallMessageTwilio([ActivityTrigger] bool isAlreadySavedToQueue, ILogger log, ExecutionContext executionContext)
         {
             log.LogInformation($"BLOB already saved to queue.");
+
             //Config settings for Azure Service Bus
             var azureServiceBusConfig = new ConfigurationBuilder()
                  .SetBasePath(executionContext.FunctionAppDirectory)
@@ -126,6 +131,7 @@ namespace DurableAzureStorageFunctions
             var twilioAccountId = azureServiceBusConfig["Twilio_SID"];
             var twilioSecret = azureServiceBusConfig["Twilio_Secret"];
             var twilioAdminMobile = azureServiceBusConfig["Admin_Mobile"];
+            var twilioVerifiedNumber = azureServiceBusConfig["Twilio_Verified_Number"];
 
             TwilioClient.Init(twilioAccountId, twilioSecret);
 
@@ -136,7 +142,7 @@ namespace DurableAzureStorageFunctions
                     //Send SMS to Azure Service Bus Admin User
                     var smsMessage = await MessageResource.CreateAsync(
                        body: "Hi Admin! A new cloud blob file was uploaded to your Service Bus Queue.",
-                       from: new PhoneNumber("+18435075357"),
+                       from: new PhoneNumber(twilioVerifiedNumber),
                        to: new PhoneNumber(twilioAdminMobile)
                      );
 
@@ -149,7 +155,7 @@ namespace DurableAzureStorageFunctions
                     //Initiate call reminder to admin
                     var call = CallResource.CreateAsync(
                     twiml: new Twiml("<Response><Say>Hi Jonah! Call reminder. New BLOB added to Service Bus Queue!</Say></Response>"),                   
-                    from: new PhoneNumber("Your verified TwilioNumber"),
+                    from: new PhoneNumber(twilioVerifiedNumber),
                     to: new PhoneNumber(twilioAdminMobile)
                     );
 
@@ -177,7 +183,6 @@ namespace DurableAzureStorageFunctions
         [FunctionName("AzureStorageNotifier_ReceiveUploadedBlobFromServiceBusQueue")]
         public static async Task<bool> ReceiveUploadedBlobFromServiceBusQueue([ActivityTrigger] bool isQueueMessageSent, ILogger log, ExecutionContext executionContext)
         {
-            log.LogInformation($"Azure Service Bus Queue = azdurablefunctioncloudqueue was trigged by uploaded data");
 
             //Config for Azure Service Bus 
             var azureServiceBusConfig = new ConfigurationBuilder()
@@ -194,6 +199,8 @@ namespace DurableAzureStorageFunctions
 
                 if (isQueueMessageSent == true)
                 {
+                    log.LogInformation($"Azure Service Bus Queue was updated with new uploaded BLOB. Receiving uploaded data from Azure Service Bus");
+
                     //Received queue message date on triggered event uploaded blob
                     await using (ServiceBusClient client = new ServiceBusClient(serviceBusConnection))
                     {
@@ -209,27 +216,21 @@ namespace DurableAzureStorageFunctions
                         //Start processing
                         await serviceBusProcessor.StartProcessingAsync();
 
-                        //For processing
-                        //Console.WriteLine($"Processing wait for a minute. Process any key to end processing");
-                        //Console.ReadKey();
-
-                        //TODO 
-                        //Stop manually processing 
+                        //Manually stop receiving message from Service Bus Queue if error occurs
                         await serviceBusProcessor.StopProcessingAsync();
-                        //Console.WriteLine($"Stopped receiving messages");
                         return true;
                     }
                 }
                 else
                 {
-                 
+                    log.LogInformation($"Azure Service Bus Queue is not updated with new data");
                     return false;
                 }                      
             }
-            catch (Exception)
-            {
-                //TODO Error handling
+            catch (Exception ex)            {
                
+               
+                log.LogInformation($"Something went wrong. Exception : {ex.InnerException}. Stopping process of receiving messages");
                 throw;
             }             
         }
@@ -262,7 +263,6 @@ namespace DurableAzureStorageFunctions
                     // myCloudBlob.SerializeObjectToBlobAsync(newUploadedBlobItem).Wait();
 
                     var instanceId = await starter.StartNewAsync("AzureStorageNotifier_Orchestrator", newUploadedBlobItem);
-
                     log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
                 }
             }
@@ -273,53 +273,54 @@ namespace DurableAzureStorageFunctions
             }
         }
 
-        private static async Task ServiceBusQueueMessageHandler(ProcessMessageEventArgs args)
+        public static async Task ServiceBusQueueMessageHandler(ProcessMessageEventArgs args)
         {         
 
             string queueMessageBody = args.Message.Body.ToString();
-            if (String.IsNullOrEmpty(queueMessageBody))
-            {               
-                Console.WriteLine($"Received Message Service Bus Queue: {queueMessageBody}");
-                SaveMessageToTextFile(queueMessageBody); //TODO:
-            }           
+          
+            Console.WriteLine($"Received Message Service Bus Queue: {queueMessageBody}");
+            await SendReceivedQueueMessageAsEmail(queueMessageBody);
+            await args.CompleteMessageAsync(args.Message);
 
-            //Complete message processing. Message deleted from queue
-            await args.CompleteMessageAsync(args.Message);          
+            // bool isReceivedQueueMessageSent = await SendReceivedQueueMessageAsEmail(queueMessageBody);
+            //if (!string.IsNullOrEmpty(queueMessageBody))
+            //{               
+            //    Console.WriteLine($"Received Message Service Bus Queue: {queueMessageBody}");
+            //    bool isReceivedQueueMessageSent = await SendReceivedQueueMessageAsEmail(queueMessageBody);
 
+            //    if (isReceivedQueueMessageSent)
+            //    {
+            //        //Complete message processing. Message deleted from queue
+
+            //    }
+            //}           
         }
 
-        public static void SaveMessageToTextFile(string queueMessageBody)
+        public static async Task<bool> SendReceivedQueueMessageAsEmail(string queueMessageBody)
         {
-            try
-            {
-                string pathToOutputFile = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Data\outputdata.txt");
-              
-                if (!String.IsNullOrEmpty(queueMessageBody))
-                {
-                    // This text is added only once to the file.
-                    if (!File.Exists(pathToOutputFile))
-                    {
-                        // Create a file to write to.
-                        using (StreamWriter sw = File.CreateText(pathToOutputFile))
-                        {
-                            sw.WriteLine(queueMessageBody);
-                        }
-                    }
-                    else
-                    {
-                        using (StreamWriter sw = File.CreateText(pathToOutputFile))
-                        {
-                            sw.WriteLine(queueMessageBody);
-                        }
-                    }
-                }
 
-            }
-            catch (Exception)
-            {
-                //TODO : Handle errors and exceptions 
-                throw;
-            }
+        
+            var apiKey = ConfigurationManager.AppSettings["SendGridAPIKey"];
+            var adminEmail = ConfigurationManager.AppSettings["Admin_Email"]; 
+            var adminName = ConfigurationManager.AppSettings["Admin_Name"]; 
+            var client = new SendGridClient(apiKey);
+            var from = new EmailAddress(adminEmail, adminName);
+
+            List<EmailAddress> recipients = new List<EmailAddress>
+              {
+                  new EmailAddress("jonah@jonahandersson.tech", "Jonah @JonahAndersson Tech"),
+                  new EmailAddress("jonah.andersson@forefront.se", "Jonah @Forefront")
+              };
+
+            var subject = "Hello world email from Sendgrid ";
+            var htmlContent = @"<strong>" + queueMessageBody + "</strong>";
+            var displayRecipients = false; // set this to true if you want recipients to see each others mail id 
+            var msg = MailHelper.CreateSingleEmailToMultipleRecipients(from, recipients, subject, "", htmlContent, displayRecipients);
+            var response = await client.SendEmailAsync(msg);
+
+            if (response.IsSuccessStatusCode)
+                return true;
+            else return false;
         }
 
         public static Task ServiceBusQueueMessageErrorHandler(ProcessErrorEventArgs args)
